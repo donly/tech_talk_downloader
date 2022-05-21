@@ -184,7 +184,7 @@ jobs:
           VERSION: '${{ steps.get_version.outputs.VERSION }}'
         run: |
           TEMP_FILE="$(mktemp)"
-          toml set Cargo.toml package.version "${VERSION:1}" > "$TEMP_FILE"
+          toml set Cargo.toml version "${VERSION:1}" > "$TEMP_FILE"
           mv "$TEMP_FILE" Cargo.toml
       - uses: actions-rs/cargo@v1
         env:
@@ -235,7 +235,7 @@ jobs:
           args: 'toml-cli'
       - run: |
           TEMP_FILE="$(mktemp)"
-          toml set Cargo.toml package.version "${VERSION:1}" > "$TEMP_FILE"
+          toml set Cargo.toml version "${VERSION:1}" > "$TEMP_FILE"
           mv "$TEMP_FILE" Cargo.toml
         shell: bash
         env:
