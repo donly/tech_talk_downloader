@@ -1,12 +1,22 @@
+use anyhow::Result;
 use clap::Parser;
-use anyhow::{Result};
-use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::{header::USER_AGENT, Client, Url};
-use subparse::{timetypes::{TimeSpan, TimePoint}, SrtFile, SubtitleFileInterface};
-use std::{io::Write, path::PathBuf, fs, fs::File, cmp::min, process::{Command, Stdio}};
-use log::{info};
-use scraper::{Html, Selector, ElementRef};
 use futures_util::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use log::info;
+use reqwest::{header::USER_AGENT, Client, Url};
+use scraper::{ElementRef, Html, Selector};
+use std::{
+    cmp::min,
+    fs,
+    fs::File,
+    io::Write,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
+use subparse::{
+    timetypes::{TimePoint, TimeSpan},
+    SrtFile, SubtitleFileInterface,
+};
 
 #[derive(Debug, Parser)]
 struct Cli {
@@ -18,7 +28,7 @@ struct Cli {
 
 enum VideoType {
     HD,
-    SD
+    SD,
 }
 
 #[tokio::main]
@@ -71,11 +81,13 @@ fn parse_transcript(html: &Html, times: &mut Vec<i64>, texts: &mut Vec<String>) 
             let span_node = element.first_child().unwrap();
             let span_element = ElementRef::wrap(span_node).unwrap();
             let time_str = span_element.value().attr("data-start").unwrap();
-            let time_float: f64 = time_str.parse().expect(&format!("{} is not a digit", time_str));
+            let time_float: f64 = time_str
+                .parse()
+                .expect(&format!("{} is not a digit", time_str));
             let time: i64 = (time_float * 1000.0) as i64;
             let text = span_element.inner_html().to_string();
             info!("{}:{}", time.to_string(), text);
-            
+
             times.push(time);
             texts.push(text);
         }
@@ -84,19 +96,24 @@ fn parse_transcript(html: &Html, times: &mut Vec<i64>, texts: &mut Vec<String>) 
 
 fn generate_srt_file(path: &PathBuf, times: &Vec<i64>, texts: &Vec<String>) {
     info!("generating subtitle");
-    if path.exists() { return }
+    if path.exists() {
+        return;
+    }
     let mut lines = vec![];
     for (i, text) in texts.iter().enumerate() {
         let start_time = *times.get(i).unwrap();
         let end_time: i64;
-        if let Some(time) = times.get(i+1) {
+        if let Some(time) = times.get(i + 1) {
             end_time = *time;
         } else {
             end_time = start_time + 3000;
         }
 
         let line = (
-            TimeSpan::new(TimePoint::from_msecs(start_time), TimePoint::from_msecs(end_time)),
+            TimeSpan::new(
+                TimePoint::from_msecs(start_time),
+                TimePoint::from_msecs(end_time),
+            ),
             String::from(text),
         );
         lines.push(line);
@@ -106,7 +123,6 @@ fn generate_srt_file(path: &PathBuf, times: &Vec<i64>, texts: &Vec<String>) {
     let data = file.to_data().unwrap();
     fs::write(path, data).expect("Unable to write file");
 }
-
 
 fn parse_video(html: &Html, video_type: &VideoType) -> String {
     info!("parsing video");
@@ -133,7 +149,7 @@ fn parse_video(html: &Html, video_type: &VideoType) -> String {
             }
         }
     }
-    
+
     link
 }
 
@@ -148,9 +164,15 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
         return Ok(String::from(file_name));
     }
     // Reqwest setup
-    let res = client.get(url).send().await.or(Err(format!("Failed to GET from '{}'", &url)))?;
+    let res = client
+        .get(url)
+        .send()
+        .await
+        .or(Err(format!("Failed to GET from '{}'", &url)))?;
 
-    let total_size = res.content_length().ok_or(format!("Failed to get content length from '{}'", &url))?;
+    let total_size = res
+        .content_length()
+        .ok_or(format!("Failed to get content length from '{}'", &url))?;
 
     // Indicatif setup
     let pb = ProgressBar::new(total_size);
@@ -161,7 +183,10 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
     pb.set_message(format!("Downloading {}", url));
 
     // download chunks
-    let mut file = File::create(&saved_path).or(Err(format!("Failed to create file '{}'", saved_path.to_str().unwrap())))?;
+    let mut file = File::create(&saved_path).or(Err(format!(
+        "Failed to create file '{}'",
+        saved_path.to_str().unwrap()
+    )))?;
     let mut downloaded: u64 = 0;
     let mut stream = res.bytes_stream();
 
@@ -174,7 +199,11 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
         pb.set_position(new);
     }
 
-    pb.finish_with_message(format!("Downloaded {} to {}", url, saved_path.to_str().unwrap()));
+    pb.finish_with_message(format!(
+        "Downloaded {} to {}",
+        url,
+        saved_path.to_str().unwrap()
+    ));
     return Ok(String::from(file_name));
 }
 
@@ -209,13 +238,13 @@ fn embed_subtitle(video_name: &str, subtitle_name: &str) {
         .spawn();
 
     match result {
-        Ok(child) => { 
+        Ok(child) => {
             let output = child.wait_with_output().unwrap();
             info!("{}", String::from_utf8(output.stdout).unwrap());
             info!("{}", String::from_utf8(output.stderr).unwrap());
             info!("status: {}", output.status);
-        },
-        Err(e) => { 
+        }
+        Err(e) => {
             info!("skip embeding subtitle. error: {:?}", e);
         }
     }

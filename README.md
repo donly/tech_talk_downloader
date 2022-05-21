@@ -1,10 +1,10 @@
-## TECH TALK DOWNLOADER
+## TECH TALKS DOWNLOADER
 
 A command line tool to download [Apple Teach Talks](https://developer.apple.com/videos/), supports embedded subtitle if `ffmpeg` is installed.
 
 ### Usage
 ```sh
-cargo run -- https://developer.apple.com/videos/play/tech-talks/110150/ .
+cargo run -- https://developer.apple.com/videos/play/tech-talks/110150/ . -vv
 ```
 
 ### Preview
