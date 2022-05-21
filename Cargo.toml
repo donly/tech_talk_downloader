@@ -1,3 +1,4 @@
+version = ""
 [package]
 name = "tech_talk_downloader"
 version = "1.0.0"
