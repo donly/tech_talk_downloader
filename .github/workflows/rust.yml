@@ -130,7 +130,7 @@ jobs:
     needs:
       - version
 #       - lints
-#       - test
+      - test
       - check
     runs-on: '${{ matrix.os }}'
     strategy:
@@ -198,7 +198,6 @@ jobs:
           name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-${{ matrix.target }}
           path: ./target/release/${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}${{ matrix.suffix }}
   release:
-    if: github.ref == 'refs/heads/master'
     needs:
       - build
     runs-on: ubuntu-latest
