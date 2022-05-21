@@ -5,9 +5,6 @@ name: Rust
     branches:
       - '*'
   pull_request: null
-
-env:
-  CARGO_TERM_COLOR: always
   
 jobs:
   check:
