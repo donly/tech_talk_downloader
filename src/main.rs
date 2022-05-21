@@ -28,7 +28,7 @@ struct Cli {
 
 enum VideoType {
     HD,
-    SD,
+    // SD,
 }
 
 #[tokio::main]
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
 
     let mut times = vec![];
     let mut texts = vec![];
-    let srt_name = video_name.split(".").nth(0).unwrap().to_owned() + ".srt";
+    let srt_name = video_name.split('.').next().unwrap().to_owned() + ".srt";
     let mut srt_path = PathBuf::from(&args.path);
     srt_path.push(&srt_name);
 
@@ -83,7 +83,7 @@ fn parse_transcript(html: &Html, times: &mut Vec<i64>, texts: &mut Vec<String>) 
             let time_str = span_element.value().attr("data-start").unwrap();
             let time_float: f64 = time_str
                 .parse()
-                .expect(&format!("{} is not a digit", time_str));
+                .unwrap_or_else(|_| panic!("{} is not a digit", time_str));
             let time: i64 = (time_float * 1000.0) as i64;
             let text = span_element.inner_html().to_string();
             info!("{}:{}", time.to_string(), text);
@@ -94,7 +94,7 @@ fn parse_transcript(html: &Html, times: &mut Vec<i64>, texts: &mut Vec<String>) 
     }
 }
 
-fn generate_srt_file(path: &PathBuf, times: &Vec<i64>, texts: &Vec<String>) {
+fn generate_srt_file(path: &PathBuf, times: &[i64], texts: &[String]) {
     info!("generating subtitle");
     if path.exists() {
         return;
@@ -102,12 +102,11 @@ fn generate_srt_file(path: &PathBuf, times: &Vec<i64>, texts: &Vec<String>) {
     let mut lines = vec![];
     for (i, text) in texts.iter().enumerate() {
         let start_time = *times.get(i).unwrap();
-        let end_time: i64;
-        if let Some(time) = times.get(i + 1) {
-            end_time = *time;
+        let end_time: i64 = if let Some(time) = times.get(i + 1) {
+            *time
         } else {
-            end_time = start_time + 3000;
-        }
+            start_time + 3000
+        };
 
         let line = (
             TimeSpan::new(
@@ -139,14 +138,14 @@ fn parse_video(html: &Html, video_type: &VideoType) -> String {
                     break;
                 }
             }
-            VideoType::SD => {
-                if video_type_str.contains("SD") {
-                    let href = a_el.value().attr("href").unwrap();
-                    link = String::from(href);
-                    info!("sd href: {}", link);
-                    break;
-                }
-            }
+            // VideoType::SD => {
+            //     if video_type_str.contains("SD") {
+            //         let href = a_el.value().attr("href").unwrap();
+            //         link = String::from(href);
+            //         info!("sd href: {}", link);
+            //         break;
+            //     }
+            // }
         }
     }
 
@@ -156,7 +155,7 @@ fn parse_video(html: &Html, video_type: &VideoType) -> String {
 async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<String, String> {
     info!("downloading video");
     let u = Url::parse(url).unwrap();
-    let file_name = u.path().split("/").last().unwrap();
+    let file_name = u.path().split('/').last().unwrap();
     let mut saved_path = PathBuf::from(path);
     saved_path.push(file_name);
 
@@ -168,7 +167,7 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
         .get(url)
         .send()
         .await
-        .or(Err(format!("Failed to GET from '{}'", &url)))?;
+        .or_else(|_| Err(format!("Failed to GET from '{}'", &url)))?;
 
     let total_size = res
         .content_length()
@@ -183,7 +182,7 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
     pb.set_message(format!("Downloading {}", url));
 
     // download chunks
-    let mut file = File::create(&saved_path).or(Err(format!(
+    let mut file = File::create(&saved_path).or_else(|_| Err(format!(
         "Failed to create file '{}'",
         saved_path.to_str().unwrap()
     )))?;
@@ -191,9 +190,9 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
     let mut stream = res.bytes_stream();
 
     while let Some(item) = stream.next().await {
-        let chunk = item.or(Err(format!("Error while downloading file")))?;
+        let chunk = item.or(Err("Error while downloading file".to_string()))?;
         file.write_all(&chunk)
-            .or(Err(format!("Error while writing to file")))?;
+            .or_else(|_| Err("Error while writing to file".to_string()))?;
         let new = min(downloaded + (chunk.len() as u64), total_size);
         downloaded = new;
         pb.set_position(new);
@@ -204,7 +203,8 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
         url,
         saved_path.to_str().unwrap()
     ));
-    return Ok(String::from(file_name));
+    
+    Ok(String::from(file_name))
 }
 
 fn embed_subtitle(video_name: &str, subtitle_name: &str) {
