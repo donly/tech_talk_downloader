@@ -180,10 +180,9 @@ async fn download_video(client: &Client, url: &str, path: &PathBuf) -> Result<St
 
 fn embed_subtitle(video_name: &str, subtitle_name: &str) {
     info!("embeding subtitle");
-    let child = Command::new("ffmpeg")
+    let result = Command::new("ffmpeg")
         // Overwrite file if it already exists
         .arg("-y")
-        // Get the data from stdin
         .arg("-i")
         .arg(video_name)
         .arg("-i")
@@ -207,11 +206,17 @@ fn embed_subtitle(video_name: &str, subtitle_name: &str) {
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         // Run the child command
-        .spawn()
-        .unwrap();
+        .spawn();
 
-    let output = child.wait_with_output().unwrap();
-    info!("{}", String::from_utf8(output.stdout).unwrap());
-    info!("{}", String::from_utf8(output.stderr).unwrap());
-    info!("status: {}", output.status);
+    match result {
+        Ok(child) => { 
+            let output = child.wait_with_output().unwrap();
+            info!("{}", String::from_utf8(output.stdout).unwrap());
+            info!("{}", String::from_utf8(output.stderr).unwrap());
+            info!("status: {}", output.status);
+        },
+        Err(e) => { 
+            info!("skip embeding subtitle. error: {:?}", e);
+        }
+    }
 }
