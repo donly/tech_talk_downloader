@@ -80,7 +80,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             suffix: .exe
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
         with:
           lfs: true
       - id: get_repository_name
@@ -138,7 +138,7 @@ jobs:
       - build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
         with:
           lfs: true
       - id: get_repository_name
