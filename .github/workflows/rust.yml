@@ -124,7 +124,6 @@ jobs:
       #   env:
       #     VERSION: ${{ steps.semvers.outputs.v_patch }}
       - run: echo "$VERSION" > ./version/version
-        run: echo "$VERSION"
         shell: bash
 
       - uses: actions/upload-artifact@master
