@@ -107,7 +107,6 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ steps.get_previous_version.output.PREVIOUS_VERSION }}
-        run: echo "$VERSION"
       # - id: semvers
       #   uses: WyriHaximus/github-action-next-semvers@master
       #   with:
@@ -127,6 +126,7 @@ jobs:
         shell: bash
 
       - uses: actions/upload-artifact@master
+        run: echo "$VERSION"
         with:
           name: version
           path: ./version/version
