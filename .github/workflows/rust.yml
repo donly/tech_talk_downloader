@@ -122,11 +122,13 @@ jobs:
       #   run: echo "$VERSION" >./version/version
       #   env:
       #     VERSION: ${{ steps.semvers.outputs.v_patch }}
+      - run: echo "$VERSION"
+        shell: bash
+        
       - run: echo "$VERSION" > ./version/version
         shell: bash
 
       - uses: actions/upload-artifact@master
-        run: echo "$VERSION"
         with:
           name: version
           path: ./version/version
