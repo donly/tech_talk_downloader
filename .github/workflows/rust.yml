@@ -106,7 +106,7 @@ jobs:
         run: echo ::set-output name=PREVIOUS_VERSION::$(git describe --tags "$(git rev-list --tags --max-count=1)")
         shell: bash
         env:
-          VERSION: ${{ get_previous_version.output.PREVIOUS_VERSION }}
+          VERSION: ${{ steps.get_previous_version.output.PREVIOUS_VERSION }}
       # - id: semvers
       #   uses: WyriHaximus/github-action-next-semvers@master
       #   with:
