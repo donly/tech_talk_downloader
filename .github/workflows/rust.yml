@@ -81,18 +81,16 @@ jobs:
             suffix: .exe
     steps:
       - uses: actions/checkout@v2
-        with:
-          lfs: true
+  
       - id: get_repository_name
         run: echo ::set-output name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
         shell: bash
 
       - name: Get the version
         id: get_version
-        uses: battila7/get-version-action@v2
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
      
-      - run: echo ${{ steps.get_version.outputs.version }}
-      - run: echo ${{ steps.get_version.outputs.version-without-v }}
+      - run: echo ${{ steps.get_version.outputs.tag }}
 
       - uses: actions/cache@v1
         with:
@@ -117,14 +115,14 @@ jobs:
           args: 'toml-cli'
       - shell: bash
         env:
-          VERSION: '${{ steps.get_version.outputs.VERSION }}'
+          VERSION: '${{ steps.get_version.outputs.tag }}'
         run: |
           TEMP_FILE="$(mktemp)"
           toml set Cargo.toml version "${VERSION:1}" > "$TEMP_FILE"
           mv "$TEMP_FILE" Cargo.toml
       - uses: actions-rs/cargo@v1
         env:
-          VERSION: '${{ steps.get_version.outputs.VERSION }}'
+          VERSION: '${{ steps.get_version.outputs.tag }}'
           REPOSITORY_NAME: '${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}'
         with:
           command: build
@@ -139,16 +137,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        with:
-          lfs: true
+
       - id: get_repository_name
         run: echo ::set-output name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
         shell: bash
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
      
-      - run: echo "${{ steps.get_version.outputs.VERSION }}"
+      - run: echo ${{ steps.get_version.outputs.tag }}
+     
       - uses: actions/download-artifact@master
         with:
           name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}-x86_64-unknown-linux-gnu
@@ -184,8 +182,8 @@ jobs:
         env:
           GITHUB_TOKEN: '${{ secrets.COMMITTER_TOKEN }}'
         with:
-          tag_name: '${{ steps.get_version.outputs.VERSION }}'
-          release_name: 'Release ${{ steps.get_version.outputs.VERSION }}'
+          tag_name: '${{ steps.get_version.outputs.tag }}'
+          release_name: 'Release ${{ steps.get_version.outputs.tag }}'
           draft: false
           prerelease: false
       - uses: actions/upload-release-asset@v1.0.1
